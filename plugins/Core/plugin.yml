@@ -1,0 +1,14 @@
+name: Core
+main: NCore\Base
+
+src-namespace-prefix: NCore
+
+author: MaXoooZ
+api: [ 4.0.0 ]
+version: 1.0.0
+
+permissions:
+  staff.group:
+    default: op
+
+depend: [ Util ]
