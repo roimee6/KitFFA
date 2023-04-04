@@ -109,6 +109,7 @@ class Util
             } else if ($count > $min) {
                 $result[] = $item;
             }
+
             $count++;
         }
         return [$pageMax, $result];
@@ -149,7 +150,7 @@ class Util
         }
 
         if ($player->getNetworkSession()->getPlayerInfo()->getExtraData()["CurrentInputMode"] === 2) {
-            $player->getInventory()->setItem(8, ItemFactory::getInstance()->get(ItemIds::NAUTILUS_SHELL));
+            $player->getInventory()->setItem(2, ItemFactory::getInstance()->get(ItemIds::NAUTILUS_SHELL));
         }
 
         $player->getEffects()->add(new EffectInstance(VanillaEffects::SPEED(), 20 * 60 * 60, 0, false));
@@ -214,26 +215,30 @@ class Util
             $player->teleport(Base::getInstance()->getServer()->getWorldManager()->getDefaultWorld()->getSafeSpawn());
         }
 
-        if (Session::get($player)->data["nightvision"] ?? false) {
-            $player->getEffects()->add(new EffectInstance(VanillaEffects::NIGHT_VISION(), 107374182, 0, false));
-        }
-
         $player->getXpManager()->setXpAndProgress(0, 0);
         $player->getInventory()->clearAll();
         $player->getArmorInventory()->clearAll();
         $player->getEffects()->clear();
         $player->setHealth(20);
+
+        if (Session::get($player)->data["nightvision"] ?? false) {
+            $player->getEffects()->add(new EffectInstance(VanillaEffects::NIGHT_VISION(), 107374182, 0, false));
+        }
     }
 
     public static function giveItems(Player $player): void
     {
         $item = ItemFactory::getInstance()->get(ItemIds::MINECART_WITH_CHEST);
-        $item->setCustomName(Util::PREFIX . "Kit §l§9«");
+        $item->setCustomName("§r" . Util::PREFIX . "Kit §l§9«");
         $player->getInventory()->setItem(1, $item);
 
         $item = ItemFactory::getInstance()->get(ItemIds::REPEATER);
-        $item->setCustomName(Util::PREFIX . "Paramètres §l§9«");
+        $item->setCustomName("§r" . Util::PREFIX . "Paramètres §l§9«");
         $player->getInventory()->setItem(2, $item);
+
+        $item = ItemFactory::getInstance()->get(ItemIds::FIREWORKS);
+        $item->setCustomName("§r" . Util::PREFIX . "Tournoi §l§9«");
+        $player->getInventory()->setItem(4, $item);
     }
 
     public static function getFile($name): Config

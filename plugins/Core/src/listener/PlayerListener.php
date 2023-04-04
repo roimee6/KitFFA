@@ -8,8 +8,8 @@ use NCore\command\staff\tool\Vanish;
 use NCore\handler\RankAPI;
 use NCore\handler\SanctionAPI;
 use NCore\Session;
-use NCore\Session as CoreSession;
-use NCore\task\BaseTask;
+use NCore\task\repeat\BaseTask;
+use NCore\task\repeat\TournamentTask;
 use NCore\Util;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
@@ -61,6 +61,8 @@ class PlayerListener implements Listener
             $player->chat("/setting");
         } else if ($item->getId() === ItemIds::MINECART_WITH_CHEST) {
             $player->chat("/kit");
+        } else if ($item->getId() === ItemIds::FIREWORKS) {
+            $player->chat("/tournoi");
         }
 
         if ($item instanceof EnderPearl) {
@@ -173,6 +175,8 @@ class PlayerListener implements Listener
             $player->kill();
         }
 
+        TournamentTask::updatePlayer($player);
+
         Base::getInstance()->getServer()->broadcastPopup("§c- " . $player->getName() . " -");
         $session->saveSessionData();
     }
@@ -187,15 +191,15 @@ class PlayerListener implements Listener
         $session->removeCooldown("combat");
         $session->removeCooldown("enderpearl");
 
-        $session->setValue("killstreak", 0);
-        $session->addValue("death", 1);
-
         $event->setXpDropAmount(0);
         $event->setDrops([]);
 
-        $cause = $player->getLastDamageCause();
+        TournamentTask::updatePlayer($player);
 
-        if (!is_null($cause) && $cause->getCause() === EntityDamageEvent::CAUSE_ENTITY_ATTACK) {
+        if (
+            ($cause = $player->getLastDamageCause()) instanceof EntityDamageEvent &&
+            $cause->getCause() === EntityDamageEvent::CAUSE_ENTITY_ATTACK
+        ) {
             /** @noinspection PhpPossiblePolymorphicInvocationInspection */
             $damager = $cause->getDamager();
 
@@ -210,6 +214,9 @@ class PlayerListener implements Listener
 
                 $damagerSession->removeCooldown("combat");
 
+                $session->setValue("killstreak", 0);
+                $session->addValue("death", 1);
+
                 $damagerSession->addValue("kill", 1);
                 $damagerSession->addValue("killstreak", 1);
 
@@ -217,8 +224,20 @@ class PlayerListener implements Listener
                     Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le joueur §9" . $damager->getName() . " §fa fait §9" . $damagerSession->data["killstreak"] . " §fkill sans mourrir !");
                 }
 
-                $multiplier = ($damagerSession->data["killstreak"] * 3 / 100 + 1);
-                $damagerSession->addValue("elo", mt_rand(3, 10) * $multiplier);
+                $diff = $damagerSession->data["elo"] - $session->data["elo"];
+                $diff = max($diff, 0);
+
+                $damagerMultiplier = ($damagerSession->data["killstreak"] * 3 / 100 + 1);
+                $damagerRand = mt_rand(3, 10) * $damagerMultiplier;
+
+                $winElo = round(((3 * $diff) / 10) + $damagerRand);
+                $lossElo = round($winElo / 3.5);
+
+                $damagerSession->addValue("elo", $winElo);
+                $session->addValue("elo", $lossElo, true);
+
+                $damager->sendMessage(Util::PREFIX . "Vous venez de gagner §9" . $winElo . " §felo");
+                $player->sendMessage(Util::PREFIX . "Vous venez de perdre §c" . $lossElo . " §felo");
 
                 Util::refresh($damager);
                 Util::giveKit($damager);
@@ -307,8 +326,8 @@ class PlayerListener implements Listener
                 $damagerSession->addValue("combo_count", 1);
                 $entitySession->setValue("combo_count", 0);
 
-                $damagerSession->setCooldown("combat", 30, [$entity->getName()]);
-                $entitySession->setCooldown("combat", 30, [$damager->getName()]);
+                $damagerSession->setCooldown("combat", 20, [$entity->getName()]);
+                $entitySession->setCooldown("combat", 20, [$damager->getName()]);
 
                 $event->setKnockback(0.38);
                 $event->setAttackCooldown(8.60);

@@ -1,6 +1,6 @@
 <?php
 
-namespace NCore\task;
+namespace NCore\task\repeat;
 
 use NCore\Base;
 use NCore\handler\Cache;
@@ -31,9 +31,17 @@ class BaseTask extends Task
             Cache::save();
         }
 
+        if ($this->tick % 20 == 0) {
+            TournamentTask::run();
+        }
+
         foreach ($players as $player) {
             if (!$player->isAlive()) {
                 continue;
+            }
+
+            if ($player->getPosition()->getY() < 0) {
+                $player->kill();
             }
 
             $session = Session::get($player);

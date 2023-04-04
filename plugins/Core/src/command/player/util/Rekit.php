@@ -28,6 +28,9 @@ class Rekit extends BaseCommand
             if ($session->inCooldown("combat")) {
                 $sender->sendMessage(Util::PREFIX . "Vous ne pouvez pas rekit en combat");
                 return;
+            } else if (Util::insideZone($sender->getPosition(), "spawn")) {
+                $sender->sendMessage(Util::PREFIX . "Vous ne pouvez pas rekit au spawn");
+                return;
             }
 
             Util::refresh($sender);

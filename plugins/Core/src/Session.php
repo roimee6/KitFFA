@@ -3,7 +3,7 @@
 namespace NCore;
 
 use NCore\handler\Cache;
-use NCore\task\BaseTask;
+use NCore\task\repeat\BaseTask;
 use pocketmine\player\GameMode;
 use pocketmine\player\Player;
 use WeakMap;

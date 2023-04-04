@@ -6,7 +6,7 @@ use CortexPE\Commando\PacketHooker;
 use NCore\command\CommandManager;
 use NCore\handler\Cache;
 use NCore\listener\PlayerListener;
-use NCore\task\BaseTask;
+use NCore\task\repeat\BaseTask;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\SingletonTrait;
 

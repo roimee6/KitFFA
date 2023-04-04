@@ -115,6 +115,13 @@ leagues:
   89: §6Bronze II
   101: §6Bronze II
 
+tournaments:
+  sumo:
+    spectate: 218:74:265
+
+    0: 235:73:265
+    1: 245:73:265
+
 sanctions:
   ban:
     Cheat:
