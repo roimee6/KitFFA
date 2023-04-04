@@ -16,6 +16,10 @@ class EntityManager
 {
     public static function startup(): void
     {
+        EntityFactory::getInstance()->register(DeadEntity::class, function (World $world, CompoundTag $nbt): DeadEntity {
+            return new DeadEntity(EntityDataHelper::parseLocation($nbt, $world), DeadEntity::parseSkinNBT($nbt), $nbt);
+        }, ["DeadEntity"]);
+
         EntityFactory::getInstance()->register(EntitySplashPotion::class, function (World $world, CompoundTag $nbt): EntitySplashPotion {
             $potionType = PotionTypeIdMap::getInstance()->fromId($nbt->getShort("PotionId", PotionTypeIds::WATER));
             if ($potionType === null) throw new SavedDataLoadingException();

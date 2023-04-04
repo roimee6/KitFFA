@@ -24,22 +24,6 @@ class Session
     }
 
     /** @noinspection PhpUnused */
-    public function sendTip(int $cps): void
-    {
-        $data = [];
-
-        if ($this->data["cps"] ?? false) {
-            $data[] = "§9CPS: §f" . $cps;
-        }
-
-        if ($this->data["combo"] ?? false) {
-            $data[] = "§9Combo: §f" . $this->data["combo_count"];
-        }
-
-        if (count($data) !== 0) {
-            $this->player->sendTip(Util::PREFIX . implode(" §f| §r", $data) . " §l§9«");
-        }
-    }
 
     private static function loadSessionData(Player $player): Session
     {
@@ -79,6 +63,23 @@ class Session
             $player,
             $data
         );
+    }
+
+    public function sendTip(int $cps): void
+    {
+        $data = [];
+
+        if ($this->data["cps"] ?? false) {
+            $data[] = "§9CPS: §f" . $cps;
+        }
+
+        if ($this->data["combo"] ?? false) {
+            $data[] = "§9Combo: §f" . $this->data["combo_count"];
+        }
+
+        if (count($data) !== 0) {
+            $this->player->sendTip(Util::PREFIX . implode(" §f| §r", $data) . " §l§9«");
+        }
     }
 
     public function saveSessionData(): void

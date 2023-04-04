@@ -77,10 +77,10 @@ default_data:
     -
 
 points:
-  84:87: "-1:0"
-  87:90: "0:1"
-  90:87: "1:0"
-  87:84: "0:-1"
+  4l-1: "1:0"
+  0l4: "0:1"
+  -5l0: "-1:0"
+  -1l-5: "0:-1"
 
 saves:
   - ip
@@ -90,7 +90,7 @@ saves:
   - cid
 
 zones:
-  spawn: 90:0:90:84:255:84:map
+  spawn: -5:0:-5:4:255:4:map
 
 leagues:
   0.3: §cGoat
@@ -121,6 +121,11 @@ tournaments:
 
     0: 235:73:265
     1: 245:73:265
+  duel:
+    spectate: 257:66:235
+
+    0: 272:66:256
+    1: 240:66:256
 
 sanctions:
   ban:
@@ -171,10 +176,8 @@ sanctions:
       - 2592000
       - -1
   kick:
+    Skin Inapproprié: [ ]
     Nick Inapproprié: [ ]
-    Full Back: [ ]
-    Camping: [ ]
-    Hosting: [ ]
 
 usernames:
   - AmontORTF8091

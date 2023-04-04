@@ -41,7 +41,10 @@ class BaseTask extends Task
             }
 
             if ($player->getPosition()->getY() < 0) {
-                $player->kill();
+                TournamentTask::updatePlayer($player);
+
+                Util::refresh($player, true);
+                Session::get($player)->removeCooldown("combat");
             }
 
             $session = Session::get($player);
@@ -64,7 +67,7 @@ class BaseTask extends Task
                     $progress = $cooldown - microtime(true);
                     $player->getXpManager()->setXpAndProgress(intval($cooldown - time()), max(0, $progress / 15));
                 } else {
-                    $player->sendPopup(Util::PREFIX . "Vous n'êtes plus en cooldown perle");
+                    $player->sendTip(Util::PREFIX . "Vous n'êtes plus en cooldown perle");
                     $player->getXpManager()->setXpAndProgress(0, 0);
 
                     unset(self::$enderpearl[array_search($player->getName(), self::$enderpearl)]);
@@ -102,7 +105,7 @@ class BaseTask extends Task
                         $vector = new Vector3(0, 0, 0);
 
                         foreach (Cache::$config["points"] as $xz => $motion) {
-                            list ($x, $z) = explode(":", $xz);
+                            list ($x, $z) = explode("l", $xz);
 
                             $vect = new Vector3($x, 0, $z);
                             $dist = $player->getPosition()->distance($vect);
@@ -123,12 +126,19 @@ class BaseTask extends Task
                         Util::refresh($player);
                         Util::giveItems($player);
 
+                        $session->removeCooldown("enderpearl");
                         $this->kits[$player->getName()] = "spawn";
                     }
                 } else {
-                    if ($kit !== "pvp") {
+                    if ($player->getWorld() !== Base::getInstance()->getServer()->getWorldManager()->getDefaultWorld()) {
+                        $worldName = $player->getWorld()->getFolderName();
+
+                        if ($kit !== $worldName) {
+                            $this->kits[$player->getName()] = $worldName;
+                        }
+                    } else if ($kit !== "pvp") {
                         Util::refresh($player);
-                        Util::giveKit($player);
+                        Util::giveKit($player, "iris");
 
                         $this->kits[$player->getName()] = "pvp";
                     }

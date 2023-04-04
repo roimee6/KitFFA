@@ -3,7 +3,6 @@
 namespace NCore\command\player\util;
 
 use CortexPE\Commando\BaseCommand;
-use NCore\handler\ScoreFactory;
 use NCore\Session;
 use NCore\Util;
 use pocketmine\command\CommandSender;

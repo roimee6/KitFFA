@@ -2,14 +2,15 @@
 
 namespace NCore;
 
+use NCore\command\player\util\Kit;
 use NCore\handler\Cache;
+use NCore\task\repeat\TournamentTask;
 use pocketmine\command\CommandSender;
 use pocketmine\console\ConsoleCommandSender;
 use pocketmine\entity\effect\EffectInstance;
 use pocketmine\entity\effect\VanillaEffects;
 use pocketmine\entity\Entity;
-use pocketmine\item\enchantment\EnchantmentInstance;
-use pocketmine\item\enchantment\VanillaEnchantments;
+use pocketmine\entity\Location;
 use pocketmine\item\ItemFactory;
 use pocketmine\item\ItemIds;
 use pocketmine\network\mcpe\protocol\AddActorPacket;
@@ -20,7 +21,6 @@ use pocketmine\utils\Config;
 use pocketmine\world\particle\BlockBreakParticle;
 use pocketmine\world\Position;
 use Util\item\items\custom\Armor;
-use Util\util\IdsUtils;
 use Webmozart\PathUtil\Path;
 
 class Util
@@ -71,9 +71,9 @@ class Util
         return $result;
     }
 
-    public static function makeLightning(Entity $victim): void
+    public static function makeLightning(Entity|Location $victim): void
     {
-        $location = $victim->getLocation();
+        $location = ($victim instanceof Entity) ? $victim->getLocation() : $victim;
         $world = $location->getWorld();
 
         $light = new AddActorPacket();
@@ -115,32 +115,16 @@ class Util
         return [$pageMax, $result];
     }
 
-    public static function giveKit(Player $player): void
+    public static function giveKit(Player $player, string $kit): void
     {
         $session = Session::get($player);
-        $kit = $session->data["kit"] ?? null;
 
-        $unbreaking = new EnchantmentInstance(VanillaEnchantments::UNBREAKING(), 3);
-        $protection = new EnchantmentInstance(VanillaEnchantments::PROTECTION(), 2);
-        $sharpness = new EnchantmentInstance(VanillaEnchantments::SHARPNESS(), 2);
+        $playerKit = $session->data["kit"] ?? "iris";
+        $kit = ($kit === "iris") ? (is_null($playerKit) ? "iris" : $playerKit) : $kit;
 
-        $helmet = ($kit === "rainbow") ? IdsUtils::RAINBOW_HELMET : IdsUtils::IRIS_HELMET;
-        $chestplate = ($kit === "rainbow") ? IdsUtils::RAINBOW_CHESTPLATE : IdsUtils::IRIS_CHESTPLATE;
-        $leggings = ($kit === "rainbow") ? IdsUtils::RAINBOW_LEGGINGS : IdsUtils::IRIS_LEGGINGS;
-        $boots = ($kit === "rainbow") ? IdsUtils::RAINBOW_BOOTS : IdsUtils::IRIS_BOOTS;
-        $sword = ($kit === "rainbow") ? IdsUtils::RAINBOW_SWORD : IdsUtils::IRIS_SWORD;
+        $kits = Kit::getKits();
 
-        $items = [
-            ItemFactory::getInstance()->get($helmet)->addEnchantment($unbreaking)->addEnchantment($protection),
-            ItemFactory::getInstance()->get($chestplate)->addEnchantment($unbreaking)->addEnchantment($protection),
-            ItemFactory::getInstance()->get($leggings)->addEnchantment($unbreaking)->addEnchantment($protection),
-            ItemFactory::getInstance()->get($boots)->addEnchantment($unbreaking)->addEnchantment($protection),
-            ItemFactory::getInstance()->get($sword)->addEnchantment($sharpness)->addEnchantment($unbreaking),
-            ItemFactory::getInstance()->get(ItemIds::ENDER_PEARL, 0, 16),
-            ItemFactory::getInstance()->get(ItemIds::SPLASH_POTION, 22, 40)
-        ];
-
-        foreach ($items as $item) {
+        foreach ($kits[$kit]["items"] as $item) {
             if ($item instanceof Armor) {
                 $player->getArmorInventory()->setItem($item->getArmorSlot(), $item);
                 continue;
@@ -149,12 +133,28 @@ class Util
             $player->getInventory()->addItem($item);
         }
 
-        if ($player->getNetworkSession()->getPlayerInfo()->getExtraData()["CurrentInputMode"] === 2) {
+        if (
+            Util::getItemCount($player, ItemIds::SPLASH_POTION, 22) > 0 &&
+            $player->getNetworkSession()->getPlayerInfo()->getExtraData()["CurrentInputMode"] === 2
+        ) {
             $player->getInventory()->setItem(2, ItemFactory::getInstance()->get(ItemIds::NAUTILUS_SHELL));
         }
 
-        $player->getEffects()->add(new EffectInstance(VanillaEffects::SPEED(), 20 * 60 * 60, 0, false));
-        $player->getEffects()->add(new EffectInstance(VanillaEffects::STRENGTH(), 20 * 60 * 60, 0, false));
+        foreach ($kits[$kit]["effects"] as $effect) {
+            $player->getEffects()->add($effect);
+        }
+    }
+
+    public static function getItemCount(Player $player, int $id, int $meta = 0): int
+    {
+        $count = 0;
+
+        foreach ($player->getInventory()->getContents() as $item) {
+            if ($item->getId() === $id && $item->getMeta() === $meta) {
+                $count += $item->getCount();
+            }
+        }
+        return $count;
     }
 
     public static function allSelectorExecute(CommandSender $sender, string $command, array $args): void
@@ -178,18 +178,6 @@ class Util
         $server->dispatchCommand(new ConsoleCommandSender($server, $server->getLanguage()), $command);
     }
 
-    public static function getItemCount(Player $player, int $id, int $meta = 0): int
-    {
-        $count = 0;
-
-        foreach ($player->getInventory()->getContents() as $item) {
-            if ($item->getId() === $id && $item->getMeta() === $meta) {
-                $count += $item->getCount();
-            }
-        }
-        return $count;
-    }
-
     public static function insideZone(Position $position, string $zone): bool
     {
         list ($x1, $y1, $z1, $x2, $y2, $z2, $world) = explode(":", Cache::$config["zones"][$zone]);
@@ -209,10 +197,28 @@ class Util
         return $x >= $minX && $x <= $maxX && $y >= $minY && $y <= $maxY && $z >= $minZ && $z <= $maxZ && $position->getWorld()->getFolderName() === $world;
     }
 
-    public static function refresh(Player $player, bool $teleport = false): void
+    public static function refresh(Player $player, bool $teleport = false, bool $forceSpawn = false): void
     {
         if ($teleport) {
-            $player->teleport(Base::getInstance()->getServer()->getWorldManager()->getDefaultWorld()->getSafeSpawn());
+            if ($forceSpawn) {
+                goto spawn;
+            }
+
+            $name = $player->getWorld()->getFolderName();
+
+            $setting = TournamentTask::$setting;
+            $map = $setting["map"] ?? "";
+
+            if ($map === $name) {
+                $world = Base::getInstance()->getServer()->getWorldManager()->getWorldByName($map);
+                $data = explode(":", Cache::$config["tournaments"][$map]["spectate"]);
+
+                $position = new Position(intval($data[0]), intval($data[1]), intval($data[2]), $world);
+                $player->teleport($position);
+            } else {
+                spawn:
+                $player->teleport(Base::getInstance()->getServer()->getWorldManager()->getDefaultWorld()->getSafeSpawn());
+            }
         }
 
         $player->getXpManager()->setXpAndProgress(0, 0);

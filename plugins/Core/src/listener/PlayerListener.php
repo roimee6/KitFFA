@@ -11,6 +11,7 @@ use NCore\Session;
 use NCore\task\repeat\BaseTask;
 use NCore\task\repeat\TournamentTask;
 use NCore\Util;
+use pocketmine\entity\animation\DeathAnimation;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
@@ -19,6 +20,7 @@ use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerChatEvent;
 use pocketmine\event\player\PlayerDataSaveEvent;
 use pocketmine\event\player\PlayerDeathEvent;
+use pocketmine\event\player\PlayerDropItemEvent;
 use pocketmine\event\player\PlayerItemUseEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
@@ -30,6 +32,7 @@ use pocketmine\network\mcpe\protocol\AnimatePacket;
 use pocketmine\player\GameMode;
 use pocketmine\player\Player;
 use pocketmine\utils\TextFormat;
+use Util\entity\DeadEntity;
 
 class PlayerListener implements Listener
 {
@@ -160,7 +163,7 @@ class PlayerListener implements Listener
         RankAPI::updateNameTag($player);
         RankAPI::addPermissions($player);
 
-        Util::refresh($player, true);
+        Util::refresh($player, true, true);
         Util::giveItems($player);
     }
 
@@ -172,13 +175,21 @@ class PlayerListener implements Listener
         $event->setQuitMessage("");
 
         if ($session->inCooldown("combat")) {
-            $player->kill();
+            $ev = new PlayerDeathEvent($player, [], 0, "");
+            $ev->call();
         }
-
-        TournamentTask::updatePlayer($player);
 
         Base::getInstance()->getServer()->broadcastPopup("§c- " . $player->getName() . " -");
         $session->saveSessionData();
+    }
+
+    public function onDrop(PlayerDropItemEvent $event): void
+    {
+        $player = $event->getPlayer();
+
+        if (Session::get($player)->data["staff_mod"][0] || $player->getGamemode() !== GameMode::CREATIVE() || !$player->hasPermission("pocketmine.group.operator")) {
+            $event->cancel();
+        }
     }
 
     public function onDeath(PlayerDeathEvent $event): void
@@ -186,63 +197,60 @@ class PlayerListener implements Listener
         $player = $event->getPlayer();
         $session = Session::get($player);
 
-        $event->setDeathMessage("");
+        $tournament = TournamentTask::updatePlayer($player);
 
-        $session->removeCooldown("combat");
+        $data = $session->getCooldownData("combat");
+        $damager = is_null($data[1]) ? "null" : $data[1];
+
         $session->removeCooldown("enderpearl");
+        $session->removeCooldown("combat");
 
-        $event->setXpDropAmount(0);
-        $event->setDrops([]);
+        if (($damager = Util::getPlayer($damager)) instanceof Player) {
+            $damagerSession = Session::get($damager);
 
-        TournamentTask::updatePlayer($player);
+            $deadEntity = new DeadEntity($player->getLocation(), $player->getSkin());
+            $deadEntity->initEntityB($player);
 
-        if (
-            ($cause = $player->getLastDamageCause()) instanceof EntityDamageEvent &&
-            $cause->getCause() === EntityDamageEvent::CAUSE_ENTITY_ATTACK
-        ) {
-            /** @noinspection PhpPossiblePolymorphicInvocationInspection */
-            $damager = $cause->getDamager();
+            $deadEntity->broadcastAnimation(new DeathAnimation($deadEntity), $player->getViewers());
+            $deadEntity->shove($deadEntity->getPosition()->getX() - $damager->getPosition()->getX(), $deadEntity->getPosition()->getZ() - $damager->getPosition()->getZ(), 0.5);
 
-            if ($cause instanceof EntityDamageByEntityEvent && $damager instanceof Player) {
-                $damagerSession = Session::get($damager);
-
-                $pot1 = Util::getItemCount($player, ItemIds::SPLASH_POTION, 22);
-                $pot2 = Util::getItemCount($damager, ItemIds::SPLASH_POTION, 22);
-
-                Base::getInstance()->getLogger()->info($player->getDisplayName() . " (" . $player->getName() . ") a été tué par " . $damager->getDisplayName() . " (" . $damager->getName() . ")");
-                Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "§9" . $player->getDisplayName() . "[§7" . $pot1 . "§9] §fa été tué par le joueur §9" . $damager->getDisplayName() . "[§7" . $pot2 . "§9]");
-
-                $damagerSession->removeCooldown("combat");
-
-                $session->setValue("killstreak", 0);
-                $session->addValue("death", 1);
-
-                $damagerSession->addValue("kill", 1);
-                $damagerSession->addValue("killstreak", 1);
-
-                if ($damagerSession->data["killstreak"] % 5 == 0) {
-                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le joueur §9" . $damager->getName() . " §fa fait §9" . $damagerSession->data["killstreak"] . " §fkill sans mourrir !");
-                }
-
-                $diff = $damagerSession->data["elo"] - $session->data["elo"];
-                $diff = max($diff, 0);
-
-                $damagerMultiplier = ($damagerSession->data["killstreak"] * 3 / 100 + 1);
-                $damagerRand = mt_rand(3, 10) * $damagerMultiplier;
-
-                $winElo = round(((3 * $diff) / 10) + $damagerRand);
-                $lossElo = round($winElo / 3.5);
-
-                $damagerSession->addValue("elo", $winElo);
-                $session->addValue("elo", $lossElo, true);
-
-                $damager->sendMessage(Util::PREFIX . "Vous venez de gagner §9" . $winElo . " §felo");
-                $player->sendMessage(Util::PREFIX . "Vous venez de perdre §c" . $lossElo . " §felo");
-
-                Util::refresh($damager);
-                Util::giveKit($damager);
+            if ($tournament) {
+                goto refresh;
             }
+
+            $pot1 = Util::getItemCount($player, ItemIds::SPLASH_POTION, 22);
+            $pot2 = Util::getItemCount($damager, ItemIds::SPLASH_POTION, 22);
+
+            Base::getInstance()->getLogger()->info($player->getDisplayName() . " (" . $player->getName() . ") a été tué par " . $damager->getDisplayName() . " (" . $damager->getName() . ")");
+            Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "§9" . $player->getDisplayName() . "[§7" . $pot1 . "§9] §fa été tué par le joueur §9" . $damager->getDisplayName() . "[§7" . $pot2 . "§9]");
+
+            $damagerSession->removeCooldown("combat");
+
+            $session->setValue("killstreak", 0);
+            $session->addValue("death", 1);
+
+            $damagerSession->addValue("kill", 1);
+            $damagerSession->addValue("killstreak", 1);
+
+            if ($damagerSession->data["killstreak"] % 5 == 0) {
+                Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le joueur §9" . $damager->getName() . " §fa fait §9" . $damagerSession->data["killstreak"] . " §fkill sans mourrir !");
+            }
+
+            $lossElo = mt_rand(1, 5);
+            $winElo = mt_rand(3, 8);
+
+            $session->addValue("elo", $lossElo);
+            $damagerSession->addValue("elo", $winElo);
+
+            $player->sendMessage(Util::PREFIX . "Vous venez de perdre §c" . $lossElo . " §felo !");
+            $damager->sendMessage(Util::PREFIX . "Vous venez de gagner §9" . $winElo . " §felo !");
+
+            Util::refresh($damager);
+            Util::giveKit($damager, "iris");
         }
+
+        refresh:
+        Util::refresh($player, true);
     }
 
     public function onPlayerSave(PlayerDataSaveEvent $event): void
@@ -264,6 +272,7 @@ class PlayerListener implements Listener
 
         if ($event->getModifier(EntityDamageEvent::MODIFIER_PREVIOUS_DAMAGE_COOLDOWN) < 0.0) {
             $event->cancel();
+            return;
         }
 
         if ($entity instanceof Player) {
@@ -271,30 +280,43 @@ class PlayerListener implements Listener
 
             if ($event->getCause() === EntityDamageEvent::CAUSE_FALL || Util::insideZone($entity->getPosition(), "spawn") || $entitySession->data["staff_mod"][0]) {
                 $event->cancel();
+                return;
+            }
+
+            if ($entity->getWorld() !== Base::getInstance()->getServer()->getWorldManager()->getDefaultWorld()) {
+                if (!in_array($entity->getName(), TournamentTask::getPlayers())) {
+                    $event->cancel();
+                    return;
+                }
             }
 
             if ($event instanceof EntityDamageByEntityEvent && ($damager = $event->getDamager()) instanceof Player) {
                 $damagerSession = Session::get($damager);
 
-                if (Util::insideZone($damager->getPosition(), "spawn")) {
-                    $event->cancel();
-                }
-
-                if ($damagerSession->inCooldown("combat")) {
-                    $combat = $damagerSession->getCooldownData("combat")[1];
-
-                    if ($combat !== $entity->getName()) {
-                        $damager->sendMessage(Util::PREFIX . "Vous êtes déjà en combat face à §9" . $combat);
+                if ($entity->getWorld() === Base::getInstance()->getServer()->getWorldManager()->getDefaultWorld()) {
+                    if (Util::insideZone($damager->getPosition(), "spawn")) {
                         $event->cancel();
+                        return;
                     }
-                }
 
-                if ($entitySession->inCooldown("combat")) {
-                    $combat = $entitySession->getCooldownData("combat")[1];
+                    if ($damagerSession->inCooldown("combat")) {
+                        $combat = $damagerSession->getCooldownData("combat")[1];
 
-                    if ($combat !== $damager->getName()) {
-                        $damager->sendMessage(Util::PREFIX . "Le joueur §9" . $entity->getName() . " §fest déjà en combat");
-                        $event->cancel();
+                        if ($combat !== $entity->getName()) {
+                            $damager->sendMessage(Util::PREFIX . "Vous êtes déjà en combat face à §9" . $combat);
+                            $event->cancel();
+                            return;
+                        }
+                    }
+
+                    if ($entitySession->inCooldown("combat")) {
+                        $combat = $entitySession->getCooldownData("combat")[1];
+
+                        if ($combat !== $damager->getName()) {
+                            $damager->sendMessage(Util::PREFIX . "Le joueur §9" . $entity->getName() . " §fest déjà en combat");
+                            $event->cancel();
+                            return;
+                        }
                     }
                 }
 
@@ -317,9 +339,8 @@ class PlayerListener implements Listener
                     }
 
                     $event->cancel();
-                }
-
-                if ($event->isCancelled() || $entity->getGamemode() === GameMode::CREATIVE() || $damager->getGamemode() === GameMode::CREATIVE() || $entity->isImmobile() || $entity->isFlying() || $entity->getAllowFlight()) {
+                    return;
+                } else if ($entity->isCreative() || $damager->isCreative() || $entity->isImmobile()) {
                     return;
                 }
 
@@ -331,6 +352,16 @@ class PlayerListener implements Listener
 
                 $event->setKnockback(0.38);
                 $event->setAttackCooldown(8.60);
+            }
+
+            $finalDamage = $event->getFinalDamage();
+            $health = $entity->getHealth();
+
+            if ($finalDamage >= $health) {
+                $event->cancel();
+
+                $ev = new PlayerDeathEvent($entity, [], 0, "");
+                $ev->call();
             }
         }
     }

@@ -3,6 +3,7 @@
 namespace NCore\command\player\util;
 
 use CortexPE\Commando\BaseCommand;
+use NCore\Base;
 use NCore\Session;
 use NCore\Util;
 use pocketmine\command\CommandSender;
@@ -28,13 +29,13 @@ class Rekit extends BaseCommand
             if ($session->inCooldown("combat")) {
                 $sender->sendMessage(Util::PREFIX . "Vous ne pouvez pas rekit en combat");
                 return;
-            } else if (Util::insideZone($sender->getPosition(), "spawn")) {
-                $sender->sendMessage(Util::PREFIX . "Vous ne pouvez pas rekit au spawn");
+            } else if (Util::insideZone($sender->getPosition(), "spawn") || $sender->getWorld() !== Base::getInstance()->getServer()->getWorldManager()->getDefaultWorld()) {
+                $sender->sendMessage(Util::PREFIX . "Vous ne pouvez pas rekit ici");
                 return;
             }
 
             Util::refresh($sender);
-            Util::giveKit($sender);
+            Util::giveKit($sender, "iris");
 
             $sender->sendMessage(Util::PREFIX . "Vous venez de rekit");
         }

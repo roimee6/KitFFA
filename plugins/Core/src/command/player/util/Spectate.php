@@ -45,7 +45,8 @@ class Spectate extends BaseCommand
                 $sender->setGamemode(GameMode::SURVIVAL());
 
                 if (!$session->data["staff_mod"][0]) {
-                    Util::refresh($sender, true);
+                    Util::refresh($sender, true, true);
+                    Util::giveItems($sender);
                 } else {
                     $sender->setAllowFlight(true);
                 }

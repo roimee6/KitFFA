@@ -30,7 +30,7 @@ class Spawn extends BaseCommand
                 return;
             }
 
-            Util::refresh($sender, true);
+            Util::refresh($sender, true, true);
             $sender->sendMessage(Util::PREFIX . "Vous venez de retourner au spawn");
         }
     }

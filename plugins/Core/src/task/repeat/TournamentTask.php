@@ -4,6 +4,7 @@ namespace NCore\task\repeat;
 
 use NCore\Base;
 use NCore\handler\Cache;
+use NCore\Session;
 use NCore\Util;
 use pocketmine\player\Player;
 use pocketmine\world\Position;
@@ -48,7 +49,7 @@ class TournamentTask
 
             foreach (self::$players as $player) {
                 if (self::goodPlayer($player)) {
-                    $player->sendPopup(Util::PREFIX . "Début dans: §9" . self::$time);
+                    $player->sendTip(Util::PREFIX . "Début dans: §9" . self::$time);
                 }
             }
 
@@ -63,10 +64,12 @@ class TournamentTask
 
                 foreach ($players as $player) {
                     if (self::goodPlayer($player)) {
+                        Util::refresh($player);
+
                         $player->teleport($position);
                         $player->setImmobile();
 
-                        $player->sendPopup(Util::PREFIX . "Début du combat dans: §9" . self::$time);
+                        $player->sendTip(Util::PREFIX . "Début du combat dans: §9" . self::$time);
                     }
                 }
             }
@@ -76,13 +79,12 @@ class TournamentTask
                     foreach ($players as $player) {
                         if (self::goodPlayer($player)) {
                             $player->setImmobile(false);
-                            Util::giveKit($player);
+                            Util::giveKit($player, self::$setting["kit"]);
 
                             $player->sendMessage(Util::PREFIX . "Le combat vient de commencer ! Bonne chance à toi");
                         }
                     }
                 }
-
 
                 self::$status = 2;
                 self::run();
@@ -92,15 +94,55 @@ class TournamentTask
 
             self::$time--;
         } else if (self::$status === 2) {
-            var_dump("pvp");
+            foreach (self::$pvp as $players) {
+                foreach ($players as $player) {
+                    if (!self::goodPlayer($player)) {
+                        self::updatePlayer($player);
+                    }
+                }
+            }
         }
+    }
+
+    private static function makeGroups(array $players, int $number): array
+    {
+        shuffle($players);
+        $result = array_chunk($players, $number);
+
+        if (array_map("array_unique", $result) != $result) {
+            return self::makeGroups($players, $number);
+        }
+        return $result;
     }
 
     private static function nextSquad(): void
     {
-        // CHECK SI YA BESOIN MEME ?
-
         self::$old = [];
+
+        if (count(self::$squads) === 1) {
+            self::$current = false;
+
+            $worldMgr = Base::getInstance()->getServer()->getWorldManager();
+            $world = $worldMgr->getWorldByName(self::$setting["map"]);
+
+            $worldMgr->unloadWorld($world);
+
+            $players = self::$squads[array_key_first(self::$squads)];
+            $format = self::format($players);
+
+            $plurral = count($players) > 1 ? "s" : "";
+            $get = count($players) > 1 ? "ont" : "a";
+
+            foreach ($players as $player) {
+                if ($player instanceof Player) {
+                    Session::get($player)->addValue("elo", 25);
+                    $player->sendMessage(Util::PREFIX . "Vous venez de gagner §925 §felo grace au tournoi remporté !");
+                }
+            }
+
+            Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le" . $plurral . " joueur" . $plurral . " §9" . $format . " §f" . $get . " remporté" . $plurral . " l'event §9" . self::$setting["map"] . " §f!");
+            return;
+        }
 
         self::$status = 1;
         self::$time = 5;
@@ -122,45 +164,75 @@ class TournamentTask
         Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le combat entre les joueurs: §9" . $squad_one . " §fet §9" . $squad_two . " §fdébute dans §95 §fsecondes !");
     }
 
-    public static function updatePlayer(Player $player): void
+    public static function format(array $players): string
     {
-        foreach (self::$pvp as $squad => $target) {
-            if ($player === $target) {
-                unset(self::$pvp[$squad][array_search($target, self::$pvp[$squad])]);
-                // TODO FINIR ICI
-            }
-        }
+        $format = implode(", ", array_map(fn($value) => $value->getName(), $players));
 
-        foreach (self::$pvp as $squad => $value) {
-            if (count(self::$pvp[$squad]) === 0) {
-                unset(self::$pvp[$squad]);
-
-                $winner = array_keys(self::$pvp)[0];
-
-                self::$squads[$winner] = self::$old[$winner];
-                self::$pvp = [];
-
-                self::nextSquad();
-            }
+        if (substr_count($format, ",") > 0) {
+            return preg_replace("~(.*)" . preg_quote(",", "~") . "~", "$1 et", $format, 1);
+        } else {
+            return $format;
         }
     }
 
     public static function goodPlayer(Player $player): bool
     {
-        if ($player->isAlive() && $player->isConnected() && !$player->isCreative()) {
+        if (
+            $player->isAlive() &&
+            $player->isConnected() &&
+            !$player->isCreative() &&
+            $player->getWorld()->getFolderName() === self::$setting["map"]
+        ) {
             return true;
         } else {
             return false;
         }
     }
 
-    private static function makeGroups(array $players, int $number): array
+    public static function updatePlayer(Player $player): bool
     {
-        shuffle($players);
-        $result = array_chunk($players, $number);
+        $result = false;
 
-        if (array_map("array_unique", $result) != $result) {
-            return self::makeGroups($players, $number);
+        foreach (self::$pvp as $squad => $players) {
+            foreach ($players as $target) {
+                if ($player->getXuid() === $target->getXuid()) {
+                    $result = true;
+                    unset(self::$pvp[$squad][array_search($target, self::$pvp[$squad])]);
+                }
+            }
+        }
+
+        foreach (self::$pvp as $squad => $value) {
+            if (count($value) === 0) {
+                unset(self::$pvp[$squad]);
+                $winner = array_key_first(self::$pvp);
+
+                self::$squads[$winner] = self::$old[$winner];
+                self::$pvp = [];
+
+                foreach (self::$squads[$winner] as $player) {
+                    if (self::goodPlayer($player)) {
+                        Util::refresh($player, true);
+                        Session::get($player)->removeCooldown("combat");
+                    }
+                }
+
+                self::nextSquad();
+            }
+        }
+        return $result;
+    }
+
+    public static function getPlayers(): array
+    {
+        $result = [];
+
+        foreach (self::$pvp as $value) {
+            foreach ($value as $player) {
+                if (self::goodPlayer($player)) {
+                    $result[] = $player->getName();
+                }
+            }
         }
         return $result;
     }
