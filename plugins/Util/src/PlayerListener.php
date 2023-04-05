@@ -2,6 +2,8 @@
 
 namespace Util;
 
+use pocketmine\event\block\BlockPlaceEvent;
+use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\entity\ItemSpawnEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJumpEvent;
@@ -36,6 +38,31 @@ class PlayerListener implements Listener
             if ($packet instanceof DataPacket && Base::getInstance()->canPerformCheck()) {
                 $session->performCheck($packet);
             }
+        }
+    }
+
+    /**
+     * @priority LOWEST
+     */
+    public function onPlace(BlockPlaceEvent $event): void
+    {
+        $player = $event->getPlayer();
+        $session = Session::get($player);
+
+        $session->lastPlace = Base::getInstance()->getServer()->getTick();
+    }
+
+
+    /**
+     * @priority LOWEST
+     */
+    public function onEntityDamage(EntityDamageEvent $event): void
+    {
+        $player = $event->getEntity();
+
+        if ($player instanceof Player) {
+            $session = Session::get($player);
+            $session->lastDamaged = Base::getInstance()->getServer()->getTick();
         }
     }
 

@@ -42,21 +42,31 @@ class Tournament extends BaseCommand
                 if (Session::get($sender)->inCooldown("combat")) {
                     $sender->sendMessage(Util::PREFIX . "Vous ne pouvez pas rejoindre de tournoi en combat");
                     return;
-                }
-
-                // TODO EVITER QUE LE MEME MEC JOIN 2 FOIS
-
-                if (count(TournamentTask::$players) >= TournamentTask::$setting["max"]) {
+                } else if (count(TournamentTask::$players) >= TournamentTask::$setting["max"]) {
                     $sender->sendMessage(Util::PREFIX . "L'hôte de l'event a limité le nombre de joueurs maximum à §9" . TournamentTask::$setting["max"] . "§f, vous ne pourrez donc pas pvp..");
-                } else {
-                    TournamentTask::$players[] = $sender;
                 }
 
                 $setting = TournamentTask::$setting;
                 $config = Cache::$config["tournaments"][$setting["map"]];
 
                 if (TournamentTask::$status === 0) {
-                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le joueur §9" . $sender->getName() . " §fvient de rejoindre le tournoi §9" . $setting["map"] . " §f(§9" . count(TournamentTask::$players) . "§f/§9" . $setting["max"] . "§f)");
+                    $already = false;
+
+                    foreach (TournamentTask::$players as $key => $player) {
+                        if ($player->getXuid() === $sender->getXuid()) {
+                            unset(TournamentTask::$players[$key]);
+                            $already = true;
+                        }
+                    }
+
+                    TournamentTask::$players[] = $sender;
+                    $message = Util::PREFIX . "Le joueur §9" . $sender->getName() . " §fvient de rejoindre le tournoi §9" . $setting["map"] . " §f(§9" . count(TournamentTask::$players) . "§f/§9" . $setting["max"] . "§f)";
+
+                    if ($already) {
+                        $sender->sendMessage($message);
+                    } else {
+                        Base::getInstance()->getServer()->broadcastMessage($message);
+                    }
                 }
 
                 $world = Base::getInstance()->getServer()->getWorldManager()->getWorldByName($setting["map"]);

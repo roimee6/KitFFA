@@ -39,6 +39,9 @@ class Session
     public int $iceTicks = 0;
     public int $climbableTicks = 0;
 
+    public int $lastPlace = 0;
+    public int $lastDamaged = 0;
+
     public bool $nearGround = true;
 
     private array $checks = [];

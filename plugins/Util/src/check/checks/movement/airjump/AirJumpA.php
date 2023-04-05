@@ -23,7 +23,7 @@ class AirJumpA extends Check
 
         $player = $ev->getPlayer();
 
-        if ($player->getAllowFlight() || $player->isImmobile() || $player->isFlying() || $player->isCreative()) {
+        if ($this->checkPlayer($player, $session)) {
             return;
         }
 

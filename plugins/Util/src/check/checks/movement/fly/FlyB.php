@@ -24,7 +24,7 @@ class FlyB extends Check
 
         $player = $ev->getPlayer();
 
-        if ($this->checkPlayer($player)) {
+        if ($this->checkPlayer($player, $session)) {
             return;
         }
 

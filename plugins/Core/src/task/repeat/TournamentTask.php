@@ -32,9 +32,15 @@ class TournamentTask
 
         if (self::$status === 0) {
             if (self::$time === 0) {
-                if ((self::$setting["count"] * 2) > count(self::$players) || count(self::$players) % self::$setting["count"] !== 0) {
+                if (self::$setting["count"] * 2 > count(self::$players)) {
+                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX ."Le tournoi ne comporte pas assez de joueurs pour débuter.. §910 §fsecondes d'attente ajouté");
+
                     self::$time += 10;
-                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le tournoi ne comporte actuellement pas assez de joueur ou le nombre de joueur ne convient pas aux nombres de joueurs dans les equipes, §910 §fsecondes supplémentaires ajoutés au temps");
+                    return;
+                } else if (count(self::$players) % self::$setting["count"] !== 0) {
+                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX ."Le tournoi ne comporte pas assez de joueur pour créer toutes les équipes convenablement.. §910 §fsecondes d'attente ajouté");
+
+                    self::$time += 10;
                     return;
                 }
 

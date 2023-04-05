@@ -63,7 +63,7 @@ class AutoClickerA extends Check
             }
         }
 
-        if ($cps > 26 && !$this->checkPing($player)) {
+        if ($cps > 30 && !$this->checkPing($player)) {
             if (++$this->vl > 6) {
                 $session->increaseVl($this);
             }
