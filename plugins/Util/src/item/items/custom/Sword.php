@@ -2,14 +2,12 @@
 
 namespace Util\item\items\custom;
 
-use NCore\Util;
 use pocketmine\block\Block;
 use pocketmine\block\BlockToolType;
 use pocketmine\entity\Entity;
 use pocketmine\item\enchantment\VanillaEnchantments;
 use pocketmine\item\ItemIdentifier;
 use pocketmine\item\ToolTier;
-use Util\util\IdsUtils;
 
 class Sword extends Durable
 {
@@ -84,12 +82,6 @@ class Sword extends Durable
 
     public function onAttackEntity(Entity $victim): bool
     {
-        if ($this->getId() === IdsUtils::IRIS_SWORD) {
-            if (mt_rand(1, 200) === 1) {
-                Util::makeLightning($victim);
-            }
-        }
-
         return $this->applyDamage(1);
     }
 }

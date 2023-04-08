@@ -160,6 +160,13 @@ class PlayerListener implements Listener
             $player->setAllowFlight(true);
         }
 
+        if (isset($session->data["master"]) && time() > $session->data["master"]) {
+            RankAPI::setRank($player->getName(), "joueur", false);
+            unset($session->data["master"]);
+
+            $player->sendMessage(Util::PREFIX . "Vous venez de perdre votre grade §5Master");
+        }
+
         RankAPI::updateNameTag($player);
         RankAPI::addPermissions($player);
 
@@ -239,14 +246,14 @@ class PlayerListener implements Listener
             $lossElo = mt_rand(1, 5);
             $winElo = mt_rand(3, 8);
 
-            $session->addValue("elo", $lossElo);
+            $session->addValue("elo", $lossElo, true);
             $damagerSession->addValue("elo", $winElo);
 
             $player->sendMessage(Util::PREFIX . "Vous venez de perdre §c" . $lossElo . " §felo !");
             $damager->sendMessage(Util::PREFIX . "Vous venez de gagner §9" . $winElo . " §felo !");
 
             Util::refresh($damager);
-            Util::giveKit($damager, "iris");
+            Util::giveKit($damager, "iris", 40);
         }
 
         refresh:

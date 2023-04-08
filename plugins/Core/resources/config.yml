@@ -5,6 +5,12 @@ ranks:
   joueur:
     gamertag: "§7{name}"
     chat: "§7[{league}§7] {name}: {msg}"
+  master:
+    gamertag: "§5[M] {name}"
+    chat: "§5[Master] [{league}§5] {name}:§7 {msg}"
+  createur:
+    gamertag: "§5[C] {name}"
+    chat: "§b[Createur] [{league}§b] {name}:§7 {msg}"
   guide:
     gamertag: "§a[Guide] {name}"
     chat: "§a[Guide] [{league}§a] {name}: {msg}"
@@ -117,15 +123,20 @@ leagues:
 
 tournaments:
   sumo:
-    spectate: 218:74:265
+    spectate: 240.5:73:243.5
 
-    0: 235:73:265
-    1: 245:73:265
-  duel:
-    spectate: 257:66:235
+    0: 246.5:73:265.5
+    1: 234.5:73:265.5
+  plat:
+    spectate: 256.5:66:234.5
 
-    0: 272:66:256
-    1: 240:66:256
+    0: 272.5:66:256.5
+    1: 240.5:66:256.5
+  colisee:
+    spectate: 278.5:76:256.5
+
+    0: 242.5:65:256.5
+    1: 270.5:6:256.5
 
 sanctions:
   ban:

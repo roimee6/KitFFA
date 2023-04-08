@@ -3,6 +3,7 @@
 namespace NCore\command\player;
 
 use CortexPE\Commando\BaseCommand;
+use NCore\Base;
 use NCore\Session;
 use NCore\Util;
 use pocketmine\command\CommandSender;
@@ -30,7 +31,12 @@ class Spawn extends BaseCommand
                 return;
             }
 
-            Util::refresh($sender, true, true);
+            if ($session->data["staff_mod"][0]) {
+                $sender->teleport(Base::getInstance()->getServer()->getWorldManager()->getDefaultWorld()->getSpawnLocation());
+            } else {
+                Util::refresh($sender, true, true);
+            }
+
             $sender->sendMessage(Util::PREFIX . "Vous venez de retourner au spawn");
         }
     }

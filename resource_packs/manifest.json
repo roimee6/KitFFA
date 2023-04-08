@@ -1,11 +1,11 @@
 {
   "format_version": 2,
   "header": {
-    "name": "§9KitFFA Nitro",
-    "description": "Kitffa nitro pack tu connais",
+    "name": "§9Nitro (§7KitFFA§9)",
+    "description": "§7Pack du kitffa de nitro",
     "uuid": "65ddb105-3d69-bb09-330b-75efe4e932a1",
     "version": [
-      1,
+      2,
       0,
       0
     ],
@@ -20,7 +20,7 @@
       "type": "resources",
       "uuid": "6b8bf0e3-3298-eb05-0edc-42f6cb7cca78",
       "version": [
-        1,
+        2,
         0,
         0
       ]

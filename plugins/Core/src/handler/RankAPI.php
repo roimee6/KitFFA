@@ -56,7 +56,7 @@ class RankAPI
         return in_array($rank, ["guide", "moderateur", "sm", "administrateur", "fondateur"]);
     }
 
-    public static function setRank(string $name, string $rank): void
+    public static function setRank(string $name, string $rank, bool $save = true): void
     {
         $name = strtolower($name);
         $player = Util::getPlayer($name);
@@ -67,7 +67,10 @@ class RankAPI
 
             self::updateNameTag($player);
             self::addPermissions($player);
-            self::saveRank($player->getXuid(), $rank);
+
+            if ($save) {
+                self::saveRank($player->getXuid(), $rank);
+            }
         } else {
             $file = Util::getFile("players/" . $name);
 
@@ -75,7 +78,9 @@ class RankAPI
                 $file->set("rank", $rank);
                 $file->save();
 
-                self::saveRank($file->get("xuid"), $rank);
+                if ($save) {
+                    self::saveRank($file->get("xuid"), $rank);
+                }
             }
         }
     }

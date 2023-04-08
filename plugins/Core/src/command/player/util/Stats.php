@@ -42,12 +42,15 @@ class Stats extends BaseCommand
             $league = $session->getLeague();
             $percentage = $session->getPercentage();
 
+            $kd = round(($data["kill"] / max(1, $data["death"])), 2);
+
             $sender->sendMessage($bar);
             $sender->sendMessage("§9[§f" . $league . "§9] [§f" . ucfirst(strtolower($data["rank"])) . "§9] §f- §9" . $target->getName());
             $sender->sendMessage("§9Elo: §f" . $data["elo"]);
             $sender->sendMessage("§9Pourcentage: §f" . $percentage);
             $sender->sendMessage("§9Kills: §f" . $data["kill"]);
             $sender->sendMessage("§9Morts: §f" . $data["death"]);
+            $sender->sendMessage("§9K/D: §f" . $kd);
             $sender->sendMessage("§9Killstreak: §f" . $data["killstreak"]);
             $sender->sendMessage($bar);
         }

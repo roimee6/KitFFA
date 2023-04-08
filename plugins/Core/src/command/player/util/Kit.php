@@ -35,21 +35,6 @@ class Kit extends BaseCommand
         $sharpness = new EnchantmentInstance(VanillaEnchantments::SHARPNESS(), 2);
 
         return [
-            "rainbow" => [
-                "items" => [
-                    ItemFactory::getInstance()->get(ItemIds::LEATHER_HELMET)->addEnchantment($unbreaking)->addEnchantment($protection),
-                    ItemFactory::getInstance()->get(ItemIds::LEATHER_CHESTPLATE)->addEnchantment($unbreaking)->addEnchantment($protection),
-                    ItemFactory::getInstance()->get(ItemIds::LEATHER_LEGGINGS)->addEnchantment($unbreaking)->addEnchantment($protection),
-                    ItemFactory::getInstance()->get(ItemIds::LEATHER_BOOTS)->addEnchantment($unbreaking)->addEnchantment($protection),
-                    ItemFactory::getInstance()->get(ItemIds::WOODEN_SWORD)->addEnchantment($sharpness)->addEnchantment($unbreaking),
-                    ItemFactory::getInstance()->get(ItemIds::ENDER_PEARL, 0, 16),
-                    ItemFactory::getInstance()->get(ItemIds::SPLASH_POTION, 22, 40)
-                ],
-                "effects" => [
-                    new EffectInstance(VanillaEffects::SPEED(), 20 * 60 * 60, 0, false),
-                    new EffectInstance(VanillaEffects::STRENGTH(), 20 * 60 * 60, 0, false)
-                ]
-            ],
             "sumo" => [
                 "items" => [
                     ItemFactory::getInstance()->get(ItemIds::STEAK, 0, 64)
@@ -65,14 +50,27 @@ class Kit extends BaseCommand
                     ItemFactory::getInstance()->get(IdsUtils::IRIS_LEGGINGS)->addEnchantment($unbreaking)->addEnchantment($protection),
                     ItemFactory::getInstance()->get(IdsUtils::IRIS_BOOTS)->addEnchantment($unbreaking)->addEnchantment($protection),
                     ItemFactory::getInstance()->get(IdsUtils::IRIS_SWORD)->addEnchantment($sharpness)->addEnchantment($unbreaking),
-                    ItemFactory::getInstance()->get(ItemIds::ENDER_PEARL, 0, 16),
-                    ItemFactory::getInstance()->get(ItemIds::SPLASH_POTION, 22, 40)
+                    ItemFactory::getInstance()->get(ItemIds::ENDER_PEARL, 0, 16)
                 ],
                 "effects" => [
                     new EffectInstance(VanillaEffects::SPEED(), 20 * 60 * 60, 0, false),
                     new EffectInstance(VanillaEffects::STRENGTH(), 20 * 60 * 60, 0, false)
                 ]
-            ]
+            ],
+            "rainbow" => [
+                "items" => [
+                    ItemFactory::getInstance()->get(ItemIds::LEATHER_HELMET)->addEnchantment($unbreaking)->addEnchantment($protection),
+                    ItemFactory::getInstance()->get(ItemIds::LEATHER_CHESTPLATE)->addEnchantment($unbreaking)->addEnchantment($protection),
+                    ItemFactory::getInstance()->get(ItemIds::LEATHER_LEGGINGS)->addEnchantment($unbreaking)->addEnchantment($protection),
+                    ItemFactory::getInstance()->get(ItemIds::LEATHER_BOOTS)->addEnchantment($unbreaking)->addEnchantment($protection),
+                    ItemFactory::getInstance()->get(ItemIds::WOODEN_SWORD)->addEnchantment($sharpness)->addEnchantment($unbreaking),
+                    ItemFactory::getInstance()->get(ItemIds::ENDER_PEARL, 0, 16)
+                ],
+                "effects" => [
+                    new EffectInstance(VanillaEffects::SPEED(), 20 * 60 * 60, 0, false),
+                    new EffectInstance(VanillaEffects::STRENGTH(), 20 * 60 * 60, 0, false)
+                ]
+            ],
         ];
     }
 

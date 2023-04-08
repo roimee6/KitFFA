@@ -20,6 +20,10 @@ class EntityManager
             return new DeadEntity(EntityDataHelper::parseLocation($nbt, $world), DeadEntity::parseSkinNBT($nbt), $nbt);
         }, ["DeadEntity"]);
 
+        EntityFactory::getInstance()->register(LeaderboardEntity::class, function (World $world, CompoundTag $nbt): LeaderboardEntity {
+            return new LeaderboardEntity(EntityDataHelper::parseLocation($nbt, $world), $nbt);
+        }, ["LeaderboardEntity"]);
+
         EntityFactory::getInstance()->register(EntitySplashPotion::class, function (World $world, CompoundTag $nbt): EntitySplashPotion {
             $potionType = PotionTypeIdMap::getInstance()->fromId($nbt->getShort("PotionId", PotionTypeIds::WATER));
             if ($potionType === null) throw new SavedDataLoadingException();

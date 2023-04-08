@@ -53,7 +53,7 @@ abstract class Check
         $pings = $playerSession->data["ping"];
         $pings[] = 1;
 
-        return max($pings) > 225;
+        return max($pings) > 150;
     }
 
     public abstract function checkPacket(Session $session, DataPacket $pk): void;

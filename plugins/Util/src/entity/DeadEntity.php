@@ -3,6 +3,7 @@
 namespace Util\entity;
 
 use NCore\Util;
+use pocketmine\entity\animation\DeathAnimation;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Human;
 use pocketmine\event\entity\EntityDamageEvent;
@@ -20,7 +21,6 @@ class DeadEntity extends Human
 
         if ($this->life >= 25) {
             $this->flagForDespawn();
-            Util::makeLightning($this->getLocation());
             return true;
         }
         return parent::entityBaseTick($tickDiff);

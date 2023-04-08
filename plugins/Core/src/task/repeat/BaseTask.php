@@ -138,7 +138,7 @@ class BaseTask extends Task
                         }
                     } else if ($kit !== "pvp") {
                         Util::refresh($player);
-                        Util::giveKit($player, "iris");
+                        Util::giveKit($player, "iris", 40);
 
                         $this->kits[$player->getName()] = "pvp";
                     }

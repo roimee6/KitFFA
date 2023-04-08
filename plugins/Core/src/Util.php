@@ -9,16 +9,10 @@ use pocketmine\command\CommandSender;
 use pocketmine\console\ConsoleCommandSender;
 use pocketmine\entity\effect\EffectInstance;
 use pocketmine\entity\effect\VanillaEffects;
-use pocketmine\entity\Entity;
-use pocketmine\entity\Location;
 use pocketmine\item\ItemFactory;
 use pocketmine\item\ItemIds;
-use pocketmine\network\mcpe\protocol\AddActorPacket;
-use pocketmine\network\mcpe\protocol\PlaySoundPacket;
-use pocketmine\network\mcpe\protocol\types\entity\PropertySyncData;
 use pocketmine\player\Player;
 use pocketmine\utils\Config;
-use pocketmine\world\particle\BlockBreakParticle;
 use pocketmine\world\Position;
 use Util\item\items\custom\Armor;
 use Webmozart\PathUtil\Path;
@@ -71,28 +65,6 @@ class Util
         return $result;
     }
 
-    public static function makeLightning(Entity|Location $victim): void
-    {
-        $location = ($victim instanceof Entity) ? $victim->getLocation() : $victim;
-        $world = $location->getWorld();
-
-        $light = new AddActorPacket();
-        $light->actorUniqueId = Entity::nextRuntimeId();
-
-        $light->actorRuntimeId = 1;
-        $light->position = $location->asVector3();
-        $light->type = "minecraft:lightning_bolt";
-        $light->yaw = $location->getYaw();
-        $light->syncedProperties = new PropertySyncData([], []);
-
-        $world->addParticle($location, new BlockBreakParticle($world->getBlock($location->floor()->down())), $world->getPlayers());
-
-        Base::getInstance()->getServer()->broadcastPackets($world->getPlayers(), [
-            $light,
-            PlaySoundPacket::create("ambient.weather.thunder", $location->getX(), $location->getY(), $location->getZ(), 1, 1)
-        ]);
-    }
-
     public static function arrayToPage(array $array, ?int $page, int $separator): array
     {
         $result = [];
@@ -115,7 +87,7 @@ class Util
         return [$pageMax, $result];
     }
 
-    public static function giveKit(Player $player, string $kit): void
+    public static function giveKit(Player $player, string $kit, int $potion): void
     {
         $session = Session::get($player);
 
@@ -143,6 +115,8 @@ class Util
         foreach ($kits[$kit]["effects"] as $effect) {
             $player->getEffects()->add($effect);
         }
+
+        $player->getInventory()->addItem(ItemFactory::getInstance()->get(ItemIds::SPLASH_POTION, 22, $potion));
     }
 
     public static function getItemCount(Player $player, int $id, int $meta = 0): int
@@ -213,7 +187,7 @@ class Util
                 $world = Base::getInstance()->getServer()->getWorldManager()->getWorldByName($map);
                 $data = explode(":", Cache::$config["tournaments"][$map]["spectate"]);
 
-                $position = new Position(intval($data[0]), intval($data[1]), intval($data[2]), $world);
+                $position = new Position(floatval($data[0]), floatval($data[1]), floatval($data[2]), $world);
                 $player->teleport($position);
             } else {
                 spawn:

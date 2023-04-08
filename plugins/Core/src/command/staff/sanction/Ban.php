@@ -74,9 +74,7 @@ class Ban extends BaseCommand
     {
         $username = strtolower($args["joueur"]);
 
-        if ($sender instanceof Player && Session::get($sender)->data["rank"] === "guide") {
-            $sender->sendMessage(Util::PREFIX . "Vous n'avez pas la permission de faire cela");
-        } else if (!isset(Cache::$players["upper_name"][$username])) {
+        if (!isset(Cache::$players["upper_name"][$username])) {
             $sender->sendMessage(Util::PREFIX . "Ce joueur ne s'est jamais connecté au serveur (verifiez bien les caractères)");
         } else if ($sender instanceof Player) {
             SanctionAPI::sanctionForm($sender, $username, "ban");

@@ -35,7 +35,7 @@ class Rekit extends BaseCommand
             }
 
             Util::refresh($sender);
-            Util::giveKit($sender, "iris");
+            Util::giveKit($sender, "iris", 40);
 
             $sender->sendMessage(Util::PREFIX . "Vous venez de rekit");
         }

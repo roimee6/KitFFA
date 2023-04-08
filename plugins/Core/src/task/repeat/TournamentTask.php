@@ -21,6 +21,9 @@ class TournamentTask
     public static array $old = [];
     public static array $pvp = [];
 
+    public static int $countProblemIssue = 0;
+    public static int $countPlayers = 0;
+
     public static int $time = 30;
     public static int $status = 0;
 
@@ -33,16 +36,16 @@ class TournamentTask
         if (self::$status === 0) {
             if (self::$time === 0) {
                 if (self::$setting["count"] * 2 > count(self::$players)) {
-                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX ."Le tournoi ne comporte pas assez de joueurs pour débuter.. §910 §fsecondes d'attente ajouté");
-
-                    self::$time += 10;
+                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le tournoi ne comporte pas assez de joueurs pour débuter.. §930 §fsecondes d'attente ajouté");
+                    self::addPlayerCountIssue();
                     return;
                 } else if (count(self::$players) % self::$setting["count"] !== 0) {
-                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX ."Le tournoi ne comporte pas assez de joueur pour créer toutes les équipes convenablement.. §910 §fsecondes d'attente ajouté");
-
-                    self::$time += 10;
+                    Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le tournoi ne comporte pas assez de joueur pour créer toutes les équipes convenablement.. §930 §fsecondes d'attente ajouté");
+                    self::addPlayerCountIssue();
                     return;
                 }
+
+                self::$countPlayers = count(self::$players);
 
                 self::$squads = self::makeGroups(self::$players, self::$setting["count"]);
                 self::$players = [];
@@ -66,7 +69,7 @@ class TournamentTask
                 $data = explode(":", Cache::$config["tournaments"][self::$setting["map"]][strval($position)]);
 
                 $world = Base::getInstance()->getServer()->getWorldManager()->getWorldByName(self::$setting["map"]);
-                $position = new Position(intval($data[0]), intval($data[1]), intval($data[2]), $world);
+                $position = new Position(floatval($data[0]), floatval($data[1]), floatval($data[2]), $world);
 
                 foreach ($players as $player) {
                     if (self::goodPlayer($player)) {
@@ -85,7 +88,7 @@ class TournamentTask
                     foreach ($players as $player) {
                         if (self::goodPlayer($player)) {
                             $player->setImmobile(false);
-                            Util::giveKit($player, self::$setting["kit"]);
+                            Util::giveKit($player, self::$setting["kit"], self::$setting["potion"]);
 
                             $player->sendMessage(Util::PREFIX . "Le combat vient de commencer ! Bonne chance à toi");
                         }
@@ -110,6 +113,28 @@ class TournamentTask
         }
     }
 
+    private static function addPlayerCountIssue(): void
+    {
+        if (self::$countProblemIssue === 3) {
+            Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Dû à un problème lié au nombre de joueurs dans le tournoi le tournoi est annulé");
+            self::stop();
+            return;
+        }
+
+        self::$countProblemIssue++;
+        self::$time += 30;
+    }
+
+    public static function stop(): void
+    {
+        self::$current = false;
+
+        $worldMgr = Base::getInstance()->getServer()->getWorldManager();
+        $world = $worldMgr->getWorldByName(self::$setting["map"]);
+
+        $worldMgr->unloadWorld($world);
+    }
+
     private static function makeGroups(array $players, int $number): array
     {
         shuffle($players);
@@ -126,12 +151,7 @@ class TournamentTask
         self::$old = [];
 
         if (count(self::$squads) === 1) {
-            self::$current = false;
-
-            $worldMgr = Base::getInstance()->getServer()->getWorldManager();
-            $world = $worldMgr->getWorldByName(self::$setting["map"]);
-
-            $worldMgr->unloadWorld($world);
+            self::stop();
 
             $players = self::$squads[array_key_first(self::$squads)];
             $format = self::format($players);
@@ -140,13 +160,13 @@ class TournamentTask
             $get = count($players) > 1 ? "ont" : "a";
 
             foreach ($players as $player) {
-                if ($player instanceof Player) {
-                    Session::get($player)->addValue("elo", 25);
-                    $player->sendMessage(Util::PREFIX . "Vous venez de gagner §925 §felo grace au tournoi remporté !");
+                if ($player instanceof Player && $player->isConnected()) {
+                    Session::get($player)->addValue("elo", self::$countPlayers * 2);
+                    $player->sendMessage(Util::PREFIX . "Vous venez de gagner §9" . (self::$countPlayers * 2) . " §felo grace au tournoi remporté !");
                 }
             }
 
-            Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le" . $plurral . " joueur" . $plurral . " §9" . $format . " §f" . $get . " remporté" . $plurral . " l'event §9" . self::$setting["map"] . " §f!");
+            Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le" . $plurral . " joueur" . $plurral . " §9" . $format . " §f" . $get . " remporté" . $plurral . " le tournoi §9" . self::$setting["name"] . " §f!");
             return;
         }
 
@@ -167,6 +187,10 @@ class TournamentTask
         $squad_one = implode("§f, §9", array_map(fn($value) => $value->getName(), $squads[0]));
         $squad_two = implode("§f, §9", array_map(fn($value) => $value->getName(), $squads[1]));
 
+        $name = (self::$setting["count"] === 1) ? "joueurs" : "équipes";
+        $remaining = (self::$setting["count"] === 1) ? "restants" : "restantes";
+
+        Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "§9" . count(self::$squads) + 2 . " §f" . $name . " " . $remaining . " dans le tournoi !");
         Base::getInstance()->getServer()->broadcastMessage(Util::PREFIX . "Le combat entre les joueurs: §9" . $squad_one . " §fet §9" . $squad_two . " §fdébute dans §95 §fsecondes !");
     }
 
@@ -187,7 +211,8 @@ class TournamentTask
             $player->isAlive() &&
             $player->isConnected() &&
             !$player->isCreative() &&
-            $player->getWorld()->getFolderName() === self::$setting["map"]
+            !Session::get($player)->data["staff_mod"][0] &&
+            $player->getWorld()->getDisplayName() === self::$setting["map"]
         ) {
             return true;
         } else {

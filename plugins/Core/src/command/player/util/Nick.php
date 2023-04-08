@@ -31,7 +31,7 @@ class Nick extends BaseCommand
     public function onRun(CommandSender $sender, string $aliasUsed, array $args): void
     {
         if ($sender instanceof Player) {
-            if (!RankAPI::hasRank($sender, "champion")) {
+            if (!RankAPI::hasRank($sender, "master")) {
                 $sender->sendMessage(Util::PREFIX . "Vous n'avez pas la permission de faire cela");
                 return;
             }

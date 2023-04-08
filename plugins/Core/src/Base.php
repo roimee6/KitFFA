@@ -35,9 +35,8 @@ class Base extends PluginBase
         $this->getScheduler()->scheduleRepeatingTask(new BaseTask(), 1);
         $this->getServer()->getPluginManager()->registerEvents(new PlayerListener(), $this);
 
-        $this->getServer()->getWorldManager()->getDefaultWorld()->setTime(12750);
+        $this->getServer()->getWorldManager()->getDefaultWorld()->setTime(6000);
         $this->getServer()->getWorldManager()->getDefaultWorld()->stopTime();
-        $this->getServer()->getWorldManager()->getDefaultWorld()->setChunkTickRadius(0);
     }
 
     protected function onDisable(): void
