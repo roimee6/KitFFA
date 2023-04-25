@@ -4,7 +4,6 @@ namespace Util\session;
 
 use NCore\handler\SanctionAPI;
 use NCore\Util;
-use pocketmine\entity\effect\Effect;
 use pocketmine\event\Event;
 use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\player\Player;
@@ -78,6 +77,8 @@ class Session
 
     public function increaseVl(Check $check): void
     {
+        $ping = $this->getPlayer()->getNetworkSession()->getPing();
+
         if (!isset($this->checkVl[$check->getName()])) {
             $this->checkVl[$check->getName()] = 0;
         }
@@ -90,16 +91,18 @@ class Session
 
         if ($this->checkVl[$check->getName()] >= $check->getMaxViolations()) {
             $this->checkVl[$check->getName()] = 0;
-            SanctionAPI::banPlayer("AntiCheat", $this->getPlayer()->getName(), substr($check->getName(), 0, -1), 20 * 24 * 60 * 60);
+            SanctionAPI::banPlayer("AntiCheat", $this->getPlayer()->getName(), substr($check->getName() . " [p=" . $ping . " v=" . $this->checkVl[$check->getName()] . "]", 0, -1), 20 * 24 * 60 * 60);
         }
     }
 
     public function alert(Check $check): void
     {
+        $ping = $this->getPlayer()->getNetworkSession()->getPing();
+        Base::getInstance()->getLogger()->info($this->getPlayer()->getName() . ": " . $check->getName() . " [vl=" . $this->checkVl[$check->getName()] . "] [ping=" . $ping . "]");
+
         foreach (Base::getInstance()->getServer()->getOnlinePlayers() as $player) {
             if ($player->hasPermission("staff.group")) {
-                Base::getInstance()->getLogger()->info($this->getPlayer()->getName() . ": " . $check->getName() . " [vl=" . $this->checkVl[$check->getName()] . "]");
-                $player->sendMessage(Util::PREFIX . "Detection: §9" . $this->getPlayer()->getName() . "§f, " . $check->getName() . "[vl=§9" . $this->checkVl[$check->getName()] . "§f]");
+                $player->sendMessage(Util::PREFIX . "Detection: §9" . $this->getPlayer()->getName() . "§f, " . $check->getName() . "[vl=§9" . $this->checkVl[$check->getName()] . "§f] [ping=§9" . $ping . "§f]");
             }
         }
     }

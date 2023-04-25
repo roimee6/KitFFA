@@ -105,10 +105,7 @@ class Util
             $player->getInventory()->addItem($item);
         }
 
-        if (
-            Util::getItemCount($player, ItemIds::SPLASH_POTION, 22) > 0 &&
-            $player->getNetworkSession()->getPlayerInfo()->getExtraData()["CurrentInputMode"] === 2
-        ) {
+        if ($potion > 0 && $player->getNetworkSession()->getPlayerInfo()->getExtraData()["CurrentInputMode"] === 2) {
             $player->getInventory()->setItem(2, ItemFactory::getInstance()->get(ItemIds::NAUTILUS_SHELL));
         }
 
