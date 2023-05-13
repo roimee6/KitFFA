@@ -2,6 +2,7 @@
 
 namespace NCore\command\staff\server;
 
+use CortexPE\Commando\args\IntegerArgument;
 use CortexPE\Commando\args\RawStringArgument;
 use CortexPE\Commando\BaseCommand;
 use NCore\command\sub\TargetArgument;
@@ -31,15 +32,17 @@ class Setmaster extends BaseCommand
         $username = strtolower($args["joueur"]);
         $player = Util::getPlayer($username);
 
+        $days = $args["jours"] ?? 2;
+
         if ($player instanceof Player) {
             $session = Session::get($player);
 
-            $time = $this->getNewTime($session->data["master"] ?? 0);
+            $time = $this->getNewTime($days, $session->data["master"] ?? 0);
             $session->data["master"] = $time;
         } else {
             if (isset(Cache::$players["upper_name"][$username])) {
                 $file = Util::getFile("players/" . $username);
-                $time = $this->getNewTime($file->get("master", 0));
+                $time = $this->getNewTime($days, $file->get("master", 0));
 
                 $file->set("master", $time);
                 $file->save();
@@ -50,17 +53,15 @@ class Setmaster extends BaseCommand
         $sender->sendMessage(Util::PREFIX . "Vous venez de définir le joueur §9" . $username . " §fcomme booster");
     }
 
-    private function getNewTime(int $time): int
+    private function getNewTime(int $days, int $time): int
     {
-        $day = 24 * 60 * 60;
-        $two = $day * 2;
-
-        return ($time > time() ? $time : time()) + $two;
+        return ($time > time() ? $time : time()) + ((24 * 60 * 60) * $days);
     }
 
     protected function prepare(): void
     {
         $this->registerArgument(0, new TargetArgument("joueur"));
         $this->registerArgument(0, new RawStringArgument("joueur"));
+        $this->registerArgument(1, new IntegerArgument("jours", true));
     }
 }
